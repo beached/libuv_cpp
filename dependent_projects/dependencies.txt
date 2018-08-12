@@ -10,5 +10,5 @@ externalproject_add(
 )
 
 include_directories( SYSTEM "${CMAKE_BINARY_DIR}/install/include" )
-link_directories( "${CMAKE_BINARY_DIR}/install/lib" )
+#link_directories( "${CMAKE_BINARY_DIR}/install/lib" )
 
