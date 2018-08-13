@@ -53,15 +53,23 @@ include_directories( SYSTEM ${Boost_INCLUDE_DIRS} )
 link_directories( ${Boost_LIBRARY_DIRS} )
 
 set( HEADER_FILES
-	${HEADER_FOLDER}/libuv_cpp.h
+	${HEADER_FOLDER}/daw/libuv_cpp.h
+)
+
+set( SOURCE_FILES
+	${SOURCE_FOLDER}/libuv_cpp.cpp
 )
 
 add_definitions( -DBOOST_TEST_DYN_LINK -DBOOST_ALL_NO_LIB -DBOOST_ALL_DYN_LINK )
 
 add_custom_target( check COMMAND ${CMAKE_CTEST_COMMAND} )
 
+add_library( uv_cpp ${HEADER_FILES} ${SOURCE_FILES} )
+target_link_libraries( uv_cpp ${LIBUV_LIBRARIES} )
+add_dependencies( uv_cpp dependency_stub )
+
 add_executable( libuv_cpp_test_bin EXCLUDE_FROM_ALL ${TEST_FOLDER}/libuv_cpp_test.cpp )
-target_link_libraries( libuv_cpp_test_bin ${Boost_LIBRARIES} ${LIBUV_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+target_link_libraries( libuv_cpp_test_bin uv_cpp ${Boost_LIBRARIES} ${LIBUV_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 add_test( libuv_cpp_test libuv_cpp_test_bin )
 add_dependencies( check libuv_cpp_test_bin )
 

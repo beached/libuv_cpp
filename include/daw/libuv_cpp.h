@@ -34,33 +34,23 @@ namespace daw {
 		std::unique_ptr<uv_loop_t> m_loop = std::make_unique<uv_loop_t>( );
 
 	public:
-		libuv_loop( ) noexcept {
-			uv_loop_init( m_loop.get( ) );
-		}
+		libuv_loop( ) noexcept;
 
 		libuv_loop( libuv_loop && ) noexcept = default;
 		libuv_loop &operator=( libuv_loop && ) noexcept = default;
 
-		~libuv_loop( ) {
-			if( auto tmp = std::move( m_loop ); tmp ) {
-				uv_loop_close( tmp.get( ) );
-			}
-		}
+		~libuv_loop( );
 
-		operator uv_loop_t const *( ) const noexcept {
-			return m_loop.get( );
-		}
+		explicit operator uv_loop_t const *( ) const noexcept;
 
-		operator uv_loop_t *( ) noexcept {
-			return m_loop.get( );
-		}
+		explicit operator uv_loop_t *( ) noexcept;
 
 		template<typename... UV_Loop_Options,
 		         std::enable_if_t<
 		           daw::traits::are_same_types_v<std::decay_t<UV_Loop_Options>...>,
 		           std::nullptr_t> = nullptr>
 		int configure( UV_Loop_Options &&... options ) noexcept(
-		  !daw::exception::can_throw_v ) {
+		  !daw::exception::may_throw_v ) {
 			daw::exception::precondition_check(
 			  m_loop, "Expected a loop that has not been closed" );
 
@@ -68,58 +58,24 @@ namespace daw {
 			                            std::forward<UV_Loop_Options>( options )... );
 		}
 
-		int close( ) noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			return ::uv_loop_close( m_loop.get( ) );
-		}
+		int close( ) noexcept( !daw::exception::may_throw_v );
 
-		int run( ::uv_run_mode mode ) noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			return ::uv_run( m_loop.get( ), mode );
-		}
+		int run( ::uv_run_mode mode = ::uv_run_mode::UV_RUN_DEFAULT ) noexcept( !daw::exception::may_throw_v );
 
-		bool alive( ) const noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			return ::uv_loop_alive( m_loop.get( ) ) != 0;
-		}
+		bool alive( ) const noexcept( !daw::exception::may_throw_v );
 
-		void stop( ) noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			::uv_stop( m_loop.get( ) );
-		}
+		void stop( ) noexcept( !daw::exception::may_throw_v );
 
-		static size_t uv_loop_size( ) noexcept {
-			return ::uv_loop_size( );
-		}
+		static size_t uv_loop_size( ) noexcept;
 
-		int back_end_fd( ) const noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			return ::uv_backend_fd( m_loop.get( ) );
-		}
+		int back_end_fd( ) const noexcept( !daw::exception::may_throw_v );
 
-		int back_end_timeout( ) const noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			return ::uv_backend_timeout( m_loop.get( ) );
-		}
+		int back_end_timeout( ) const noexcept( !daw::exception::may_throw_v );
 
 		std::chrono::milliseconds now( ) const
-		  noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			return std::chrono::milliseconds( ::uv_now( m_loop.get( ) ) );
-		}
+		  noexcept( !daw::exception::may_throw_v );
 
-		void update_time( ) noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-			::uv_update_time( m_loop.get( ) );
-		}
+		void update_time( ) noexcept( !daw::exception::may_throw_v );
 
 	private:
 		template<typename Callback>
@@ -131,20 +87,15 @@ namespace daw {
 
 	public:
 		void walk( uv_walk_cb walk_cb, void *arg ) noexcept(
-		  !daw::exception::can_throw_v &&
+		  !daw::exception::may_throw_v &&
 		  noexcept( walk_cb( std::declval<uv_handle_t *>( ),
-		                     std::declval<void *>( ) ) ) ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-
-			::uv_walk( m_loop.get( ), walk_cb, arg );
-		}
+		                     std::declval<void *>( ) ) ) );
 
 		template<typename Callback,
 		         std::enable_if_t<daw::is_callable_v<Callback, uv_handle_t &>,
 		                          std::nullptr_t> = nullptr>
 		void walk( Callback &&cb ) noexcept(
-		  !daw::exception::can_throw_v &&
+		  !daw::exception::may_throw_v &&
 		  daw::is_nothrow_callable_v<Callback, uv_handle_t &> ) {
 			daw::exception::precondition_check(
 			  m_loop, "Expected a loop that has not been closed" );
@@ -152,18 +103,8 @@ namespace daw {
 			::uv_walk( m_loop.get( ), walk_cb<Callback>, static_cast<void *>( &std::forward<Callback>( cb ) ) );
 		}
 
-		void *get_data( ) const noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
+		void *get_data( ) const noexcept( !daw::exception::may_throw_v );
 
-			return ::uv_loop_get_data( m_loop.get( ) );
-		}
-
-		void set_data( void *data ) noexcept( !daw::exception::can_throw_v ) {
-			daw::exception::precondition_check(
-			  m_loop, "Expected a loop that has not been closed" );
-
-			::uv_loop_set_data( m_loop.get( ), data );
-		}
+		void set_data( void *data ) noexcept( !daw::exception::may_throw_v );
 	};
 } // namespace daw
