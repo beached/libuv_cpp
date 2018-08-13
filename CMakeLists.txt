@@ -37,7 +37,7 @@ else( )
 	include( "${CMAKE_SOURCE_DIR}/dependent_projects/dependencies.txt" )
 
 	add_library( dependency_stub STATIC "${CMAKE_SOURCE_DIR}/dependent_projects/stub.cpp" )
-	add_dependencies( dependency_stub header_libraries_prj date_prj )
+	add_dependencies( dependency_stub header_libraries_prj  )
 endif( )
 
 set( HEADER_FOLDER "include" )
