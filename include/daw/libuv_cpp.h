@@ -28,22 +28,45 @@
 
 #include <daw/daw_exception.h>
 #include <daw/daw_traits.h>
+#include <daw/daw_value_ptr.h>
 
 namespace daw {
-	class libuv_loop {
-		std::unique_ptr<uv_loop_t> m_loop = std::make_unique<uv_loop_t>( );
+	// tag to indicate we want a new loop and not the
+	// uv_default_loop( )
+	struct new_uv_loop_t {};
+	inline constexpr new_uv_loop_t new_uv_loop = new_uv_loop_t{};
+
+	struct libuv_loop {
+		using pointer = ::uv_loop_t *;
+		using const_pointer = ::uv_loop_t const *;
+
+	private:
+		pointer m_loop = ::uv_default_loop( );
+		bool m_owns_loop = false;
+
+		inline pointer ptr( ) noexcept {
+			return m_loop;
+		}
+
+		inline const_pointer ptr( ) const noexcept {
+			return m_loop;
+		}
 
 	public:
 		libuv_loop( ) noexcept;
+		explicit libuv_loop( new_uv_loop_t ) noexcept;
+		explicit libuv_loop( pointer p, bool take_owner_ship = false ) noexcept;
 
 		libuv_loop( libuv_loop && ) noexcept = default;
 		libuv_loop &operator=( libuv_loop && ) noexcept = default;
 
-		~libuv_loop( );
+		~libuv_loop( ) noexcept;
 
-		explicit operator uv_loop_t const *( ) const noexcept;
+		operator const_pointer( ) const noexcept;
 
-		explicit operator uv_loop_t *( ) noexcept;
+		operator pointer( ) noexcept;
+
+		pointer release( ) noexcept;
 
 		template<typename... UV_Loop_Options,
 		         std::enable_if_t<
@@ -54,13 +77,14 @@ namespace daw {
 			daw::exception::precondition_check(
 			  m_loop, "Expected a loop that has not been closed" );
 
-			return ::uv_loop_configure( m_loop.get( ),
+			return ::uv_loop_configure( ptr( ),
 			                            std::forward<UV_Loop_Options>( options )... );
 		}
 
 		int close( ) noexcept( !daw::exception::may_throw_v );
 
-		int run( ::uv_run_mode mode = ::uv_run_mode::UV_RUN_DEFAULT ) noexcept( !daw::exception::may_throw_v );
+		int run( ::uv_run_mode mode = ::uv_run_mode::UV_RUN_DEFAULT ) noexcept(
+		  !daw::exception::may_throw_v );
 
 		bool alive( ) const noexcept( !daw::exception::may_throw_v );
 
@@ -79,18 +103,13 @@ namespace daw {
 
 	private:
 		template<typename Callback>
-		static void walk_cb( uv_handle_t *ptr, void *vfunc ) noexcept(
+		static void walk_cb( uv_handle_t *p, void *vfunc ) noexcept(
 		  daw::is_nothrow_callable_v<Callback, uv_handle_t &> ) {
 
-			( *static_cast<Callback *>( vfunc ) )( *ptr );
+			( *static_cast<Callback *>( vfunc ) )( *p );
 		}
 
 	public:
-		void walk( uv_walk_cb walk_cb, void *arg ) noexcept(
-		  !daw::exception::may_throw_v &&
-		  noexcept( walk_cb( std::declval<uv_handle_t *>( ),
-		                     std::declval<void *>( ) ) ) );
-
 		template<typename Callback,
 		         std::enable_if_t<daw::is_callable_v<Callback, uv_handle_t &>,
 		                          std::nullptr_t> = nullptr>
@@ -100,7 +119,8 @@ namespace daw {
 			daw::exception::precondition_check(
 			  m_loop, "Expected a loop that has not been closed" );
 
-			::uv_walk( m_loop.get( ), walk_cb<Callback>, static_cast<void *>( &std::forward<Callback>( cb ) ) );
+			::uv_walk( ptr( ), walk_cb<Callback>,
+			           static_cast<void *>( &std::forward<Callback>( cb ) ) );
 		}
 
 		void *get_data( ) const noexcept( !daw::exception::may_throw_v );

@@ -24,6 +24,12 @@
 
 int main( ) {
 	auto tmp = daw::libuv_loop( );
-
+	auto tmp2 = daw::libuv_loop( daw::new_uv_loop );
+	if( !tmp2.alive() ) {
+		tmp2.run( ::uv_run_mode::UV_RUN_DEFAULT );
+	}
+	auto tmp3 = daw::libuv_loop( static_cast<uv_loop_t*>(tmp2) );
+	auto idle_handle = uv_idle_t{};
+	uv_idle_init( tmp3, &idle_handle );
 	return 0;
 }
